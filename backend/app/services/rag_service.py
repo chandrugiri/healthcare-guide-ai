@@ -211,10 +211,19 @@ def _to_chat_source(source_id: int, chunk: RetrievedChunk) -> ChatSource:
 
 def _remove_invalid_citations(answer: str, available_count: int) -> str:
     def replace(match: re.Match[str]) -> str:
-        source_number = int(match.group(1))
-        return match.group(0) if 1 <= source_number <= available_count else ""
+        numbers = [int(value.strip()) for value in match.group(1).split(",")]
+        valid_numbers = list(
+            dict.fromkeys(
+                number for number in numbers if 1 <= number <= available_count
+            )
+        )
+        if not valid_numbers:
+            return ""
+        return f"[{', '.join(str(number) for number in valid_numbers)}]"
 
-    return re.sub(r"\[(\d+)\]", replace, answer)
+    sanitized = re.sub(r"\[\s*(\d+(?:\s*,\s*\d+)*)\s*\]", replace, answer)
+    sanitized = re.sub(r"[ \t]{2,}", " ", sanitized)
+    return re.sub(r"\s+([,.;:!?])", r"\1", sanitized)
 
 
 def _is_greeting(question: str) -> bool:
@@ -231,7 +240,6 @@ def _is_medication_change_request(question: str) -> bool:
         r"\brecommend(?:\s+(?:a|some))?\s+(?:medicine|medication)\b",
         r"\b(?:medicine|tablet|treatment)\s+for\b",
         r"\bwhich\s+antibiotic\b",
-        r"\b(?:can|should)\s+i\s+take\b",
         r"\b(?:increase|reduce)\s+(?:my\s+)?(?:dose|dosage)\b",
         r"\bchange\s+(?:my\s+)?(?:dose|dosage|medicine|medication|treatment)\b",
         r"\bstop\s+taking\b",
@@ -240,9 +248,13 @@ def _is_medication_change_request(question: str) -> bool:
         return True
 
     medication_signal = re.search(
-        r"\b(medicine|medication|dose|dosage|treatment|tablet|pill|antibiotic)\b",
+        r"\b(medicine|medication|dose|dosage|prescription|treatment|tablet|pill|"
+        r"antibiotic|paracetamol|acetaminophen|ibuprofen|aspirin)\b",
         lowered,
     )
+    if medication_signal and re.search(r"\b(?:can|should)\s+i\s+take\b", lowered):
+        return True
+
     change_signal = re.search(
         r"\b(stop|stopping|quit|change|reduce|increase|skip|adjust)\b", lowered
     )

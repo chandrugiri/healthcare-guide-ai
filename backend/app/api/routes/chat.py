@@ -1,7 +1,10 @@
-from fastapi import APIRouter, HTTPException, status
+from functools import lru_cache
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.models.chat import ChatRequest, ChatResponse
-from app.services.embedding_service import GeminiEmbeddingService
+from app.services.embedding_service import EmbeddingTransientError, GeminiEmbeddingService
 from app.services.generation_service import (
     GeminiGenerationService,
     GenerationTransientError,
@@ -28,10 +31,18 @@ def build_rag_service() -> RAGService:
     )
 
 
+@lru_cache(maxsize=1)
+def get_rag_service() -> RAGService:
+    return build_rag_service()
+
+
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
+def chat(
+    request: ChatRequest,
+    rag_service: Annotated[RAGService, Depends(get_rag_service)],
+) -> ChatResponse:
     try:
-        return build_rag_service().answer(
+        return rag_service.answer(
             question=request.question,
             history=request.history,
         )
@@ -40,8 +51,11 @@ async def chat(request: ChatRequest) -> ChatResponse:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
-    except GenerationTransientError as exc:
+    except (EmbeddingTransientError, GenerationTransientError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="The answer generation service is temporarily unavailable.",
+            detail=(
+                "The healthcare information service is temporarily unavailable. "
+                "Please try again shortly."
+            ),
         ) from exc

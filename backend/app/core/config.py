@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     retrieval_candidate_count: int = 12
     retrieval_min_similarity: float = 0.62
     retrieval_max_chunks_per_source: int = 3
-    generation_model: str = "gemini-3.5-flash"
+    generation_model: str = "gemini-2.5-flash"
     generation_context_top_k: int = 3
     generation_max_output_tokens: int = 1200
     generation_max_retries: int = 3

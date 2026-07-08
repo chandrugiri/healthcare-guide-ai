@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -9,6 +11,7 @@ from app.core.logging import configure_logging
 
 
 configure_logging()
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 
@@ -26,6 +29,13 @@ app.include_router(chat_router, prefix=settings.api_prefix)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    safe_exception = RuntimeError("Unexpected application error")
+    logger.exception(
+        "Unhandled exception method=%s path=%s",
+        request.method,
+        request.url.path,
+        exc_info=(type(safe_exception), safe_exception, exc.__traceback__),
+    )
     return JSONResponse(
         status_code=500,
         content={"detail": "An unexpected error occurred."},

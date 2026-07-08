@@ -11,6 +11,7 @@ from app.services.rag_service import (
     MEDICATION_SAFETY_NOTICE,
     NO_EVIDENCE_RESPONSE,
     RAGService,
+    _remove_invalid_citations,
 )
 
 
@@ -180,6 +181,24 @@ def test_neutral_medication_question_is_not_blocked() -> None:
     assert response.answer == "Generated answer [1]"
 
 
+@pytest.mark.parametrize(
+    "question",
+    [
+        "What are antibiotics?",
+        "Can I take a walk after dinner?",
+        "Should I take some rest?",
+        "Can I take a shower with a fever?",
+    ],
+)
+def test_non_medication_take_questions_are_not_blocked(question: str) -> None:
+    service, retrieval, generation = _service([_chunk(1)])
+
+    service.answer(question)
+
+    assert retrieval.calls == [question]
+    assert generation.prompts
+
+
 def test_backend_created_sources_preserve_filename_and_page() -> None:
     service, _, _ = _service([_chunk(1)])
 
@@ -194,7 +213,26 @@ def test_invalid_generated_citation_numbers_are_removed() -> None:
 
     response = service.answer("How can I sleep?")
 
-    assert response.answer == "Use sleep routines [1] ."
+    assert response.answer == "Use sleep routines [1]."
+
+
+@pytest.mark.parametrize(
+    ("answer", "available_count", "expected"),
+    [
+        ("Valid [1].", 2, "Valid [1]."),
+        ("Invalid [99].", 2, "Invalid."),
+        ("Grouped [1, 2].", 2, "Grouped [1, 2]."),
+        ("Mixed [1, 99].", 2, "Mixed [1]."),
+        ("Invalid group [98, 99].", 2, "Invalid group."),
+        ("Adjacent [1][2].", 2, "Adjacent [1][2]."),
+        ("Duplicate [2, 1, 2].", 2, "Duplicate [2, 1]."),
+        ("Keep [clinical note].", 2, "Keep [clinical note]."),
+    ],
+)
+def test_grouped_citation_validation(
+    answer: str, available_count: int, expected: str
+) -> None:
+    assert _remove_invalid_citations(answer, available_count) == expected
 
 
 def test_sensitive_values_and_full_questions_are_not_logged(caplog: pytest.LogCaptureFixture) -> None:
