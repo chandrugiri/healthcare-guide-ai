@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,14 @@ class VectorStoreError(Exception):
 
 class VectorStoreValidationError(VectorStoreError):
     pass
+
+
+@dataclass(frozen=True)
+class VectorQueryResult:
+    chunk_id: str
+    document: str
+    metadata: dict[str, Any]
+    distance: float
 
 
 class ChromaVectorStore:
@@ -62,6 +71,20 @@ class ChromaVectorStore:
     def chunk_exists(self, chunk_id: str) -> bool:
         return chunk_id in self.existing_chunk_ids([chunk_id])
 
+    def query_by_embedding(
+        self, query_embedding: list[float], candidate_count: int
+    ) -> list[VectorQueryResult]:
+        self._validate_embedding(query_embedding)
+        if candidate_count <= 0:
+            raise VectorStoreValidationError("candidate_count must be greater than zero")
+
+        response = self.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=candidate_count,
+            include=["documents", "metadatas", "distances"],
+        )
+        return _parse_query_response(response)
+
     def clear_collection(self) -> None:
         try:
             self.client.delete_collection(self.collection_name)
@@ -100,3 +123,40 @@ class ChromaVectorStore:
         if chunk.table_index is not None:
             metadata["table_index"] = chunk.table_index
         return metadata
+
+
+def _parse_query_response(response: dict[str, Any]) -> list[VectorQueryResult]:
+    ids = _first_result_list(response.get("ids"))
+    documents = _first_result_list(response.get("documents"))
+    metadatas = _first_result_list(response.get("metadatas"))
+    distances = _first_result_list(response.get("distances"))
+    row_count = min(len(ids), len(documents), len(metadatas), len(distances))
+
+    results: list[VectorQueryResult] = []
+    for index in range(row_count):
+        chunk_id = ids[index]
+        document = documents[index]
+        metadata = metadatas[index]
+        distance = distances[index]
+        if not isinstance(chunk_id, str) or not isinstance(document, str):
+            continue
+        if not isinstance(metadata, dict):
+            continue
+        if not isinstance(distance, (int, float)):
+            continue
+        results.append(
+            VectorQueryResult(
+                chunk_id=chunk_id,
+                document=document,
+                metadata=metadata,
+                distance=float(distance),
+            )
+        )
+    return results
+
+
+def _first_result_list(value: object) -> list[Any]:
+    if not isinstance(value, list) or not value:
+        return []
+    first = value[0]
+    return first if isinstance(first, list) else []
