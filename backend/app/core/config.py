@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     retrieval_candidate_count: int = 12
     retrieval_min_similarity: float = 0.62
     retrieval_max_chunks_per_source: int = 3
+    generation_model: str = "gemini-3.5-flash"
+    generation_context_top_k: int = 3
+    generation_max_output_tokens: int = 1200
+    generation_max_retries: int = 3
+    generation_max_context_characters: int = 9000
+    generation_thinking_budget: int = 0
+    chat_max_question_length: int = 1000
+    chat_max_history_messages: int = 6
 
     model_config = SettingsConfigDict(
         env_file=".env",

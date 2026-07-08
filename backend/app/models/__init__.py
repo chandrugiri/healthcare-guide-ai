@@ -1,4 +1,14 @@
+from app.models.chat import ChatHistoryMessage, ChatRequest, ChatResponse, ChatSource
 from app.models.document import ParsedPage, ParsedTable, TextChunk
 from app.models.retrieval import RetrievedChunk
 
-__all__ = ["ParsedPage", "ParsedTable", "RetrievedChunk", "TextChunk"]
+__all__ = [
+    "ChatHistoryMessage",
+    "ChatRequest",
+    "ChatResponse",
+    "ChatSource",
+    "ParsedPage",
+    "ParsedTable",
+    "RetrievedChunk",
+    "TextChunk",
+]
