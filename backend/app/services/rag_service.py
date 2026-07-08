@@ -30,10 +30,16 @@ NO_EVIDENCE_RESPONSE = (
 )
 
 MEDICATION_SAFETY_RESPONSE = (
-    "I can't recommend stopping or changing medicine, dosage, or treatment. Please "
-    "speak with a qualified healthcare professional before making any medication or "
-    "treatment changes. If symptoms are urgent or life-threatening, contact local "
-    "emergency or urgent medical services."
+    "I can provide general healthcare information, but I can’t prescribe or recommend "
+    "a specific medicine, dosage, or treatment. Please speak with a qualified "
+    "pharmacist, GP, or other healthcare professional who can assess your individual "
+    "situation. If your symptoms are severe, rapidly worsening, or urgent, seek urgent "
+    "medical care."
+)
+
+MEDICATION_SAFETY_NOTICE = (
+    "This assistant does not prescribe medicines or provide personalised treatment "
+    "decisions."
 )
 
 SAFETY_NOTICE = (
@@ -91,7 +97,11 @@ class RAGService:
             return self._response(request_id, GREETING_RESPONSE, [], True, None)
         if _is_medication_change_request(query):
             return self._response(
-                request_id, MEDICATION_SAFETY_RESPONSE, [], True, SAFETY_NOTICE
+                request_id,
+                MEDICATION_SAFETY_RESPONSE,
+                [],
+                False,
+                MEDICATION_SAFETY_NOTICE,
             )
 
         retrieved = self.retrieval_service.retrieve(query)
@@ -212,9 +222,25 @@ def _is_greeting(question: str) -> bool:
 
 
 def _is_medication_change_request(question: str) -> bool:
-    lowered = question.lower()
+    lowered = " ".join(question.lower().split())
+    request_patterns = (
+        r"\bprescrib(?:e|ed|es|ing)\b",
+        r"\b(?:need|want|get|renew|request)\s+(?:a\s+)?prescription\b",
+        r"\b(?:what|which)\s+(?:tablet|medicine)\b.*\b(?:should|can)\s+i\s+"
+        r"(?:take|use)\b",
+        r"\brecommend(?:\s+(?:a|some))?\s+(?:medicine|medication)\b",
+        r"\b(?:medicine|tablet|treatment)\s+for\b",
+        r"\bwhich\s+antibiotic\b",
+        r"\b(?:can|should)\s+i\s+take\b",
+        r"\b(?:increase|reduce)\s+(?:my\s+)?(?:dose|dosage)\b",
+        r"\bchange\s+(?:my\s+)?(?:dose|dosage|medicine|medication|treatment)\b",
+        r"\bstop\s+taking\b",
+    )
+    if any(re.search(pattern, lowered) for pattern in request_patterns):
+        return True
+
     medication_signal = re.search(
-        r"\b(medicine|medication|dose|dosage|prescription|treatment|tablet|pill)\b",
+        r"\b(medicine|medication|dose|dosage|treatment|tablet|pill|antibiotic)\b",
         lowered,
     )
     change_signal = re.search(

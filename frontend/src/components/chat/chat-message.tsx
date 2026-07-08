@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { ChatMessage as ChatMessageType, FeedbackValue } from "@/lib/chat-types"
 import { cn } from "@/lib/utils"
 import { FeedbackButtons } from "./feedback-buttons"
+import { FormattedAnswer } from "./formatted-answer"
 import { SourceCitations } from "./source-citations"
 
 type ChatMessageProps = {
@@ -40,7 +41,17 @@ export function ChatMessage({ message, onFeedback }: ChatMessageProps) {
             "border-slate-200 bg-slate-50 text-slate-700"
         )}
       >
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap">{message.content}</p>
+        ) : (
+          <FormattedAnswer answer={message.content} />
+        )}
+
+        {!isUser && message.safetyNotice && (
+          <p className="mt-3 rounded-lg bg-teal-50 px-3 py-2 text-xs leading-5 text-teal-900">
+            {message.safetyNotice}
+          </p>
+        )}
 
         {!isUser && <SourceCitations sources={message.sources ?? []} />}
 

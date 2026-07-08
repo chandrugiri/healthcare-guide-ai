@@ -8,6 +8,7 @@ from app.services.generation_service import GenerationTransientError
 from app.services.rag_service import (
     GREETING_RESPONSE,
     MEDICATION_SAFETY_RESPONSE,
+    MEDICATION_SAFETY_NOTICE,
     NO_EVIDENCE_RESPONSE,
     RAGService,
 )
@@ -144,15 +145,39 @@ def test_no_evidence_response_bypasses_gemini() -> None:
     assert generation.prompts == []
 
 
-def test_medication_change_request_bypasses_gemini() -> None:
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Should I stop my blood pressure medication?",
+        "What tablet can I use for fever?",
+        "Can you prescribe medicine for cold and flu?",
+        "Which antibiotic should I take?",
+        "Should I increase my dosage?",
+    ],
+)
+def test_personalised_medication_request_bypasses_retrieval_and_gemini(
+    question: str,
+) -> None:
     service, retrieval, generation = _service([])
 
-    response = service.answer("Should I stop my blood pressure medication?")
+    response = service.answer(question)
 
     assert response.answer == MEDICATION_SAFETY_RESPONSE
     assert response.sources == []
+    assert response.insufficient_context is False
+    assert response.safety_notice == MEDICATION_SAFETY_NOTICE
     assert retrieval.calls == []
     assert generation.prompts == []
+
+
+def test_neutral_medication_question_is_not_blocked() -> None:
+    service, retrieval, generation = _service([_chunk(1)])
+
+    response = service.answer("What is paracetamol?")
+
+    assert retrieval.calls == ["What is paracetamol?"]
+    assert generation.prompts
+    assert response.answer == "Generated answer [1]"
 
 
 def test_backend_created_sources_preserve_filename_and_page() -> None:

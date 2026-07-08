@@ -2,12 +2,19 @@
 
 import { useState } from "react"
 
-import type { ChatMessage, FeedbackValue } from "@/lib/chat-types"
+import type {
+  ChatMessage,
+  ChatResponse,
+  FeedbackValue,
+  SourceCitation,
+} from "@/lib/chat-types"
 import {
-  askMockHealthcareGuide,
+  ChatApiError,
+  askHealthcareGuide,
   knowledgeBaseStatus,
   suggestedQuestions,
-} from "@/lib/mock-api"
+  toBackendHistory,
+} from "@/lib/chat-api"
 import { ChatHeader } from "./chat-header"
 import { ErrorBanner } from "./error-banner"
 import { MessageInput } from "./message-input"
@@ -15,7 +22,7 @@ import { MessageList } from "./message-list"
 import { SafetyDisclaimer } from "./safety-disclaimer"
 import { WelcomeState } from "./welcome-state"
 
-const requestErrorMessage =
+const fallbackRequestErrorMessage =
   "Something went wrong while preparing the response. Please try again."
 
 export function ChatShell() {
@@ -44,24 +51,29 @@ export function ChatShell() {
     setIsLoading(true)
 
     try {
-      const response = await askMockHealthcareGuide({
-        message: trimmedMessage,
-        history: messages,
+      const response = await askHealthcareGuide({
+        question: trimmedMessage,
+        history: toBackendHistory(messages),
       })
 
       const assistantMessage: ChatMessage = {
         id: createMessageId(),
         role: "assistant",
         content: response.answer,
-        sources: response.sources,
-        isSafetyResponse: response.isSafetyResponse,
-        isInsufficientEvidence: response.isInsufficientEvidence,
+        sources: toDisplaySources(response),
+        isSafetyResponse: response.insufficient_context && Boolean(response.safety_notice),
+        isInsufficientEvidence: response.insufficient_context,
+        safetyNotice: response.safety_notice,
+        requestId: response.request_id,
       }
 
       setMessages([...nextMessages, assistantMessage])
-    } catch {
-      setError(requestErrorMessage)
-      setMessages(nextMessages)
+    } catch (error) {
+      setError(
+        error instanceof ChatApiError ? error.message : fallbackRequestErrorMessage
+      )
+      setInput(trimmedMessage)
+      setMessages(messages)
     } finally {
       setIsLoading(false)
     }
@@ -116,6 +128,18 @@ export function ChatShell() {
       </footer>
     </div>
   )
+}
+
+function toDisplaySources(response: ChatResponse): SourceCitation[] {
+  return response.sources.map((source) => ({
+    id: source.source_id,
+    filename: source.source_file,
+    page: source.page_number,
+    contentType: source.content_type,
+    tableIndex: source.table_index,
+    similarityScore: source.similarity_score,
+    excerpt: source.excerpt,
+  }))
 }
 
 function createMessageId() {
