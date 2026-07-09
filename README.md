@@ -151,7 +151,6 @@ healthcare-guide-ai/
 │   │   └── services/
 │   ├── data/
 │   │   ├── chroma/
-│   │   └── documents/
 │   ├── tests/
 │   ├── .env.example
 │   ├── pytest.ini
@@ -161,6 +160,14 @@ healthcare-guide-ai/
 │   ├── components/
 │   ├── lib/
 │   └── .env.local.example
+├── knowledge-base/
+│   ├── 01-sleep-hygiene.pdf/
+│   ├── 02-heart-health.pdf
+│   ├── 03-high-blood-pressure.pdf
+│   ├── 04-healthy-eating.pdf
+│   ├── 05-dehydration.pdf
+│   ├── 06-physical-activity.pdf
+│   └── SOURCES.md
 ├── docs/
 │   └── architecture.md
 ├── evaluation/
@@ -411,13 +418,13 @@ Screenshots are stored in the [`screenshots`](screenshots/) directory.
 
 Add the screenshots you captured to this section using their exact filenames, for example:
 
-```markdown
+
 ![Home screen](screenshots/healthcare-guide_01.png)
 
 ![Grounded answer](screenshots/healthcare-guide_02.png)
 
 ![Medication safety response](screenshots/healthcare-guide_03.png)
-```
+
 
 ---
 
