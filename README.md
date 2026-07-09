@@ -58,6 +58,55 @@ A more detailed architecture description is available in:
 
 ---
 
+## Design Decisions and Reasoning
+
+I deliberately chose a simple, classic RAG pipeline rather than using an agent framework such as LangGraph.
+
+The main requirement was to answer questions from a fixed document collection. The workflow only needs:
+
+1. embed the user question.
+2. retrieve relevant document chunks.
+3. filter weak evidence.
+4. generate a grounded answer.
+5. return trusted source metadata.
+
+Adding an agent framework would have increased complexity without providing a clear benefit for this use case.
+
+### Why FastAPI and Next.js?
+
+I used FastAPI because it provides typed request validation, dependency injection, clear error handling, and a lightweight API layer for Python-based AI services.
+I used Next.js and TypeScript for the frontend because they provide a structured React application, reusable components, and type-safe API integration.
+
+### Why ChromaDB?
+
+I chosed ChromaDB because it is simple to run locally, supports persistent vector storage, and was sufficient for the small curated corpus used in this assignment.
+For a production system with multiple backend instances, I would replace local Chroma storage with a managed vector database or PostgreSQL with pgvector.
+
+### Why Gemini?
+
+I used Gemini for both embeddings and grounded answer generation to keep the provider integration focused and reduce unnecessary dependencies.
+The embedding model produces 768-dimensional vectors, while 'gemini-2.5-flash' provides an appropriate balance between response quality, latency, and cost for this prototype.
+
+### Why page-local chunks?
+
+Chunks are kept within individual PDF pages so that every result can be associated with an accurate page number.
+This is more important for this application than maximising chunk size because users need to understand where healthcare information came from.
+
+### Why deterministic chunk IDs?
+
+Each chunk receives a deterministic hash-based ID. This allows ingestion to be resumed safely and prevents duplicate records when the ingestion command is run multiple times.
+This became particularly useful when the embedding provider quota interrupted ingestion.
+
+### Why backend-controlled citations?
+
+The language model may produce numeric citation markers, but source filenames, page numbers, and excerpts are always created from retrieved backend data.
+I did not allow the model to generate source metadata because it could invent or misattribute documents.
+
+### Why deterministic safety responses?
+
+Personalised medication and treatment requests are handled before retrieval and generation.
+This makes the most important healthcare safety behaviour predictable, testable, and independent of model output.
+
 ## Technology Stack
 
 ### Frontend
@@ -409,6 +458,42 @@ Sensitive user content and secrets are intentionally excluded from logs.
 
 ---
 
+## Trade-offs
+
+The implementation focuses on a clean, testable core rather than covering every possible production feature.
+
+### Local Chroma storage
+
+Local persistent Chroma was the most pragmatic choice for the assignment. It keeps development and demonstration simple, but it is not suitable for multiple horizontally scaled backend instances.
+
+### Startup ingestion
+
+The Docker container creates the vector database when it does not already exist.
+This makes deployment reproducible, but initial startup can take several minutes and depends on embedding-provider quota. In production, I would run ingestion as a separate background job or deployment step.
+
+### Static curated corpus
+
+The application uses six curated healthcare documents rather than supporting arbitrary uploads.
+This kept the scope focused on retrieval quality, safety, citations, and application design.
+
+### Rule-based medication detection
+
+The medication guardrail uses conservative pattern matching to identify personalised medicine requests.
+This provides predictable behaviour, but a production version should combine deterministic rules with a separately evaluated safety classifier.
+
+### No authentication or rate limiting
+
+Authentication, user accounts, and rate limiting were intentionally left out because they were not central to demonstrating the RAG workflow.
+These would be required before exposing the system as a public production service.
+
+### No OCR
+
+The parser supports text-based PDFs using PyMuPDF. Scanned PDFs would require OCR and additional layout evaluation.
+
+### Provider quotas
+
+The free Gemini tier can return `429` responses when daily embedding limits are reached. The application retries transient failures and returns a safe service-unavailable response, but a production deployment should use a paid quota, monitoring, and provider fallback.
+
 ## Known Limitations
 
 - no OCR for scanned PDFs;
@@ -424,6 +509,25 @@ Sensitive user content and secrets are intentionally excluded from logs.
 - local Chroma storage is not suitable for multi-instance horizontal scaling.
 
 ---
+
+## What I Would Improve Next
+
+Given more time, I would prioritise the following improvements:
+
+1. Move the vector database to pgvector or a managed vector service.
+2. Run ingestion as a separate background job instead of during application startup.
+3. Add a labelled retrieval evaluation dataset and measure precision@k and recall@k.
+4. Add hybrid keyword and semantic search.
+5. Add a reranking step for retrieved chunks.
+6. Add token streaming to improve perceived response time.
+7. Add authentication, rate limiting, and request quotas.
+8. Add structured monitoring, traces, latency metrics, and provider-usage alerts.
+9. Add automated source versioning and expiry checks.
+10. Perform formal healthcare safety review and adversarial testing.
+11. Add OCR support for scanned documents.
+12. Add CI/CD checks for tests, linting, frontend builds, and Docker builds.
+
+The first production priority would be separating ingestion from the API runtime and replacing local Chroma storage with managed persistent infrastructure.
 
 ## Productionisation Approach
 
@@ -466,28 +570,28 @@ The planned deployment flow is:
 
 ---
 
-## AI-Assisted Development
+## Use of AI Coding Tools
 
-AI-assisted coding tools were used to accelerate:
+I used AI coding tools to accelerate scaffolding, repetitive implementation work, test generation, and code-review suggestions.
 
-- project scaffolding;
-- repetitive implementation tasks;
-- focused code generation;
-- unit-test creation;
-- refactoring suggestions;
-- documentation drafting.
+I did not treat generated code as automatically correct. I made the architectural decisions, selected the RAG workflow, defined the healthcare safety boundaries, reviewed the generated changes, ran the tests, inspected failures, and changed the implementation based on observed behaviour.
 
-The architecture, healthcare scope, retrieval strategy, safety rules, implementation decisions, validation steps, and production trade-offs were reviewed and controlled by the developer.
+Examples of issues I identified and addressed during development include:
 
-The project was built incrementally and validated using:
+- PDF table false positives;
+- weak retrieval for unsupported questions;
+- incomplete model responses;
+- invalid and grouped citation handling;
+- medication-detector false positives;
+- blocking synchronous work inside an async route;
+- repeated service construction per request;
+- embedding-provider quota failures;
+- Docker filesystem permissions;
+- persistent Chroma storage;
+- Docker environment-value quoting;
+- CORS configuration.
 
-- automated tests;
-- code review;
-- real PDF parsing;
-- live embedding ingestion;
-- retrieval inspection;
-- live Gemini API calls;
-- end-to-end browser testing.
+The final system was validated through 109 automated tests, retrieval inspection, live Gemini calls, Docker testing, and browser-based end-to-end testing.
 
 ---
 
