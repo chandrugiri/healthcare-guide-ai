@@ -561,9 +561,9 @@ For a production deployment, the following improvements are recommended:
 Deployment URLs will be added after the backend and frontend are deployed.
 
 ```text
-Frontend: To be added
-Backend:  To be added
-GitHub:   To be added
+Frontend: https://healthcare-guide-ai.vercel.app
+Backend:  https://healthcare-guide-ai-production.up.railway.app
+GitHub:   https://github.com/chandrugiri/healthcare-guide-ai
 ```
 
 The planned deployment flow is:
