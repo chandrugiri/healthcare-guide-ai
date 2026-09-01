@@ -4,7 +4,7 @@ A full-stack Retrieval-Augmented Generation (RAG) application that answers gener
 
 The system is designed to provide grounded, source-backed information while avoiding diagnosis, prescriptions, medication recommendations, and personalised treatment advice.
 
-> **Important:** This project is an informational prototype. It is not a medical device and does not replace advice from a qualified healthcare professional.
+> **Safety notice**: Healthcare Guide AI provides source-grounded general information and is not intended for diagnosis, treatment, or emergency use.
 
 ---
 
@@ -79,13 +79,13 @@ I used Next.js and TypeScript for the frontend because they provide a structured
 
 ### Why ChromaDB?
 
-I chosed ChromaDB because it is simple to run locally, supports persistent vector storage, and was sufficient for the small curated corpus used in this assignment.
+I chosed ChromaDB because it is simple to run locally, supports persistent vector storage, and was well suited to the application’s curated healthcare corpus and local-first development workflow.
 For a production system with multiple backend instances, I would replace local Chroma storage with a managed vector database or PostgreSQL with pgvector.
 
 ### Why Gemini?
 
 I used Gemini for both embeddings and grounded answer generation to keep the provider integration focused and reduce unnecessary dependencies.
-The embedding model produces 768-dimensional vectors, while 'gemini-2.5-flash' provides an appropriate balance between response quality, latency, and cost for this prototype.
+The embedding model produces 768-dimensional vectors, while 'gemini-2.5-flash' provides an appropriate balance between response quality, latency, and operating cost for this application.
 
 ### Why page-local chunks?
 
@@ -471,7 +471,7 @@ The implementation focuses on a clean, testable core rather than covering every 
 
 ### Local Chroma storage
 
-Local persistent Chroma was the most pragmatic choice for the assignment. It keeps development and demonstration simple, but it is not suitable for multiple horizontally scaled backend instances.
+Local persistent Chroma provides a lightweight and reproducible development setup, but it is not suitable for multiple horizontally scaled backend instances.
 
 ### Startup ingestion
 
@@ -604,6 +604,6 @@ The final system was validated through 109 automated tests, retrieval inspection
 
 ## License
 
-This repository is intended for technical evaluation and demonstration purposes.
+This repository showcases the architecture and implementation of a production-minded, safety-aware healthcare RAG application.
 
 The healthcare source documents remain the property of their original publishers and are used for informational demonstration only.
