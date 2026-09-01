@@ -25,8 +25,6 @@ The system is designed to provide grounded, source-backed information while avoi
 - Provider-neutral error handling
 - Production-minded architecture and documentation
 
----
-
 ## Architecture
 
 ```mermaid
