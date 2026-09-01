@@ -12,7 +12,7 @@ The application is designed to:
 - provide deterministic responses for greetings, unsupported questions, and medication requests;
 - keep retrieval, generation, API, and UI concerns separated.
 
-This repository is a take-home implementation and a production-minded prototype. It is not a medical device and does not replace professional medical advice.
+The system follows a production-minded architecture with grounded generation, traceable sources, deterministic safety controls, and clear separation between retrieval, generation, API, and UI components.
 
 ---
 
