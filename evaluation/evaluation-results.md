@@ -316,7 +316,7 @@ Approximately 3–8 seconds
 
 The request performs query embedding, Chroma retrieval, and Gemini generation.
 
-This is acceptable for the take-home prototype with a visible loading state.
+This is acceptable for the current implementation with a visible loading state.
 
 Potential improvements:
 
@@ -351,7 +351,7 @@ Limitations include:
 
 ## 12. Overall result
 
-The application met the intended take-home objectives:
+The application met the intended engineering objectives:
 
 - full-stack conversational healthcare UI;
 - document-grounded RAG;
@@ -368,7 +368,7 @@ The application met the intended take-home objectives:
 Overall evaluation outcome:
 
 ```text
-PASS — suitable for take-home submission
+PASS — core functional and safety requirements validated
 ```
 
-This means the prototype works as designed for the curated demonstration corpus. It does not mean the system is approved for clinical use.
+This means the prototype works as designed for the curated healthcare corpus. It does not mean the system is approved for clinical use.
